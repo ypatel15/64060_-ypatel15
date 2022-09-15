@@ -1,0 +1,31 @@
+---
+title: "Assignment_01"
+author: "Yash Patel"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+#install.packages("tidyverse")
+library(tidyverse)
+#install.packages("palmerpenguins")
+library(palmerpenguins)
+data("penguins")
+new_penguins <- mutate(penguins,body_mass_kg = body_mass_g / 1000)
+View(new_penguins)
+
+```
+
+
+
+```{r}
+ggplot(new_penguins,mapping = aes(x= body_mass_g, y = flipper_length_mm, 
+                                  color = species, shape = island)) + 
+  geom_point()
+
+```
+
