@@ -1,0 +1,173 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+#Loading Packages
+library("ISLR")
+library("caret")
+library("class")           
+library("ggplot2")
+library("gmodels")
+#Importing data
+Data.a <-  read_csv("C:/Users/YASH/Downloads/UniversalBank.csv") 
+str(ub)
+
+##cleaning the data
+
+ub <- Data.a[,c(-1,-5)]
+head(ub)
+test.na <- is.na.data.frame("ub")
+##Converting data types. 
+ub$Education <- as.character(ub$Education)
+is.character(ub$Education)
+ub$`Personal Loan` <- as.factor(ub$`Personal Loan`)
+is.factor(ub$`Personal Loan`)                       
+##Dummying variables
+DummyVariables <- dummyVars(~Education, ub)
+head(predict(DummyVariables, ub))
+ub1 <- predict(DummyVariables,ub)
+##merging data
+ub2<- ub[,-6]
+ub3 <- cbind(ub2,ub1)              
+str(ub3)                          
+
+
+##Normalization and partition 
+
+set.seed(123)
+Part_Train_ub <- createDataPartition(ub3$`Personal Loan`, p=0.6, list=F)
+train.ub <- ub3[Part_Train_ub,]
+val_ub <- ub3[-Part_Train_ub,]                        
+#Normalizing the training dataset
+nor_ub <- preProcess(train.ub[,-c(7,12:14)], method=c("center","scale"))
+nor_ub_train <- predict(nor_ub, train.ub)
+nor_ub_val <- predict(nor_ub, val_ub)
+summary(nor_ub_train)
+summary(nor_ub_val)
+
+##Inserting a test set and normalizing it
+
+test_data <- cbind.data.frame(Age = 40,Experience = 10, Income = 84, Family = 2,
+                              CCAvg = 2, Mortgage = 0, Securities.Account = 0, 
+                              CD.Account = 0, Online = 1, CreditCard = 1, Education1 = 0,
+                              Education2 = 1, Education3 = 0)
+test_nor <- predict(nor_ub, test_data)
+
+
+#1. Running the knn model (k=1)
+
+pred_tr_ub <- nor_ub_train[,-7]
+pred_val_ub <- nor_ub_val[,-7]                        
+train_labels <- nor_ub_train[,7]                                
+val_labels <- nor_ub_val[,7]
+pred_k<- knn(pred_tr_ub, test_nor, cl=train_labels, k=1)   
+head(pred_k)                                                  
+
+#When k=1, the customer is classified as 0, indicating that the loan is rejected. Because factor 1 indicates loan acceptance and factor 0 indicates loan rejection.
+
+#2. k value that achieves a balance between overfitting and ignoring predictor information.
+
+set.seed(455)
+ub_grid <- expand.grid(k=c(1:30))
+
+model <- train(Personal.Loan~Age+Experience+Income+Family+CCAvg+Mortgage
+               +Securities.Account+CD.Account+Online+CreditCard+Education1
+               +Education2+Education3, data=nor_ub_train, method="knn",
+               tuneGrid = ub_grid)
+model
+k_val <- model$bestTune[[1]]              
+k_val                                          
+
+#The k value which balances between over fitting and ignoring the predictor information is k = 1. 
+
+#Plotting the model
+
+plot(model)
+
+
+
+#3. Applying a confusion matrix over the validation data
+
+pred_training <- predict(model,nor_ub_val[,-7])     
+confusionMatrix(pred_training, val_labels)
+
+#Miscalculations = 73, Accuracy = 0.9635, Sensitivity = 0.9895
+
+#4. Running the test data with the best k selected above
+
+test_k_val <- knn(pred_tr_ub, test_nor, cl=train_labels, k=best_k)
+head(test_best_k)
+
+#When the best k is selected, the customer is classified as 0, indicating that the loan is not accepted.
+
+#5. Repartitioning the data into training(50%), validation(30%) and test(20%) and running the entire model with best k
+
+set.seed(422)
+ub_part2 <- createDataPartition(ub3$`Personal Loan`, p=0.5, list = F)
+train.ub1 <- ub3[ub_part2,]                                                
+test_ub1 <- ub3[-ub_part2,]
+ub_part_x <- createDataPartition(test_ub1$`Personal Loan`,p=0.6, list =F)
+val_ub1 <- test_ub1[ub_part_x,]                                  
+test_ub_a <- test_ub1[-ub_part_x,]                                    
+#Normalization                                                           
+nor_x <- preProcess(train.ub1[,-c(7,12:14)],method=c("center","scale"))  
+train_x <- predict(nor_x, train.ub1)                  
+val_x <- predict(nor_x, val_ub1)                    
+test_x <- predict(nor_x, test_ub_a)
+#Defining the predictors and labels
+train_pred_ub <- train_x[,-7]                   
+val_pred_ub <- val_x[,-7]                      
+test_pred_ub <- test_x[,-7]                      
+train_labels_ub <- train_x[,7]                        
+val_labels_ub <- val_x[,7]                 
+test_labels_ub <- test_x[,7]                      
+#implementing the knn model on the train dataset
+model_x<- knn(train_pred_ub,train_pred_ub,cl=train_labels_ub,k=best_k) 
+head(model_x)
+#implementing the knn model on validation dataset
+model_y <- knn(train_pred_ub,val_pred_ub,cl=train_labels_ub,k=best_k)
+head(model_y)                                                              
+#implementing the knn model on test dataset
+model_z <- knn(train_pred_ub,test_pred_ub,cl=train_labels_ub,k=best_k)
+head(model_z)                                                                 
+
+
+#Using CrossTable to compare the Test vs Training and Validation
+
+confusionMatrix(model_x,n_train_labels)
+
+#train.ub-
+#Miscalculations = 0
+#Accuracy = 1
+#Sensitivity = 1
+#(This is because both the train and test datasets are same, model has already seen the data and hence it cannot predict anything wrong, which results in 100% Accuracy and 0 Miscalulations).
+
+
+
+confusionMatrix(model_y,val_labels_ub)
+
+#Validation Data - 
+#Miscalculations = 22 + 55 = 77
+#Accuracy = 0.9487
+#Sensitivity = 0.9838
+
+
+
+confusionMatrix(model_z,test_labels_ub)
+
+#Test_Data -
+#Miscalculations = 39
+#Accuracy = 0.961
+#Sensitivity = 0.9856
+
+#Miscalculations:
+#Validation - 77, Test - 39 
+
+#Accuracy:
+#Validation - 0.9487, Test - 0.961
+
+#Sensitivty:
+#Validation - 0.9838, Test - 0.9856
+
+##We see that the Test data has fewer misalculations, greater accuracy and sensitivity when compared to that of the validation data, by this we can say that the model works well on the unseen data.
