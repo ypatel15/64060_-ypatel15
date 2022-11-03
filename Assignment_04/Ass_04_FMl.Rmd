@@ -1,0 +1,108 @@
+---
+title: "Assignment_04_FML"
+author: "Yash_Patel"
+date: "2022-11-03"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Loading and installing the required packages
+```{r}
+#install.packages("tidyverse")
+library(tidyverse)
+#install.packages("factoextra")
+library(factoextra)
+library(cluster)
+
+```
+
+### Loading the dataset
+```{r}
+Pharma<- read.csv("C:/Users/YASH/Downloads/Pharmaceuticals.csv")
+summary(Pharma)
+
+```
+## A.
+
+### for initial analysis seperating columns with numerical values
+```{r}
+Pharma[,1] <- row.names(Pharma)
+Pharma.01 <- Pharma[,3:11]
+head(Pharma.01)
+#Scaling the data
+Scale.pharma <- scale(Pharma.01)
+head(Scale.pharma)
+
+```
+
+### Using the Elbow method and the silhouette method, we can determine the number of clusters.
+```{r}
+fviz_nbclust(Scale.pharma, kmeans, method = "wss")
+fviz_nbclust(Scale.pharma, kmeans, method = "silhouette")
+
+```
+
+
+In order to determine the right number of clusters, I used the Elbow and Silhouette methods. so here we will use the silhouette method because it is thought to be better compared to the elbow method.
+```{r}
+set.seed(4560)
+Pharma.5.clust<- kmeans(Scale.pharma, centers = 5, nstart = 25)
+Pharma.5.clust$centers
+fviz_cluster(Pharma.5.clust, data = Scale.pharma)
+
+```
+
+### According to the above clusters, the sizes are 8, 2, 4, 4, and 3.
+```{r}
+pharma.fit <- kmeans(Scale.pharma, 5)
+
+
+Pharma.02 <- data.frame(Scale.pharma, pharma.fit$cluster)
+Pharma.02
+
+clusplot(Scale.pharma, pharma.fit$cluster, color = TRUE, shade = TRUE, labels = 2, lines =0)
+
+```
+
+## B. Interpret the clusters with respect to the numerical variables used in forming the clusters.
+
+observing the mean values of all quantitative variables for each cluster
+```{r}
+aggregate(Scale.pharma, by = list(pharma.fit$cluster), FUN=mean)
+
+```
+
+Cluster01 - JNJ, MRK, GSK, and PFE are the companies with the largest market capitalizations, and they manage their companies by adequately funding them (leverage below 0.47)
+
+Cluster02 - AHM, AVE, and WPI have the lowest asset turnover and beta, respectively, indicating that their stocks are underperforming the current market performance index.
+
+Cluster03 - IVX, MRX, ELN, and CHTT have the lowest market capitalization, the company does not use debt to fund its operations, and they all have the highest revenue growth. These company stocks also provide good returns because their beta value is greater than 1.
+
+Cluster04 - With the highest price to earnings ratio, AGN, PHA, and BAY are the least profitable. They also have a Return on Equity below 1, demonstrating that investing in these stocks will not be as profitable as investing in other stocks.  
+
+Cluster05- The highest asset turnover, slowest revenue growth, and highest net profit margin are found in ABT, NVS, AZN, LLY, BMY, WYE, and SGP. Due to their rapid growth, these businesses are profitable.
+
+## C. Is there a pattern in the clusters with respect to the numerical variables (10 to 12)? (those not used in forming the clusters) 
+
+To find the patterns relating to media recommendations, location, and exchange, we manually filtered each cluster.
+
+For cluster01: The nature of the stocks is moderate, i.e., neither they are weak stocks nor have they recently produced strong returns. 
+
+For cluster02: In terms of location, the stocks are diverse. Their fundamentals are technically sound, and media recommendations are extremely favorable.
+
+For cluster03: Their leverage ratio is high, but they are moderately recommended due to their financial stability.
+
+For cluster04: According to media recommendations, these are the stocks that should be held because they will eventually become profitable investments.
+
+For Cluster05: Due to their high net profit margin, the stocks in the cluster are recommended to be held for a longer period of time.
+
+## D. Provide an appropriate name for each cluster using any or all of the variables in the dataset. 
+
+Cluster01: Growth Cluster - Because these are stable stocks
+Cluster02: Multibagger cluster - Despite their low beta, market recommendations are very positive.
+Cluster03: Fundamental Cluster - Stocks that have good financial and other fundamental stability.
+Cluster04: Hold cluster - These stocks have decent stats. 
+Cluster05: Long term Cluster - Stocks that have a high net profit margin are considered to be profitable, so holding them in your portfolio is advisable.
