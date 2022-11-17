@@ -1,0 +1,41 @@
+---
+title: "Practice-module-08"
+author: "Yash_Patel"
+date: "2022-11-17"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Loading and scaling the Iris Dataset
+```{r}
+df <- iris #loading data
+df <- scale(df [c(1:4)]) #scaling the data
+library(cluster) #loading package
+```
+
+## Using agnes function and computing different linkage method
+```{r}
+hc_single <- agnes(df, method = "single")
+hc_complete <- agnes(df, method = "complete")
+hc_average <- agnes(df, method = "average")
+```
+
+## deciding which linkage method to use based on the values. 
+```{r}
+print(hc_single$ac)
+## [1] 0.8023794
+print(hc_complete$ac)
+## [1] 0.9438858
+print(hc_average$ac)
+## [1] 0.9035705
+```
+## as per the above computed value complete is the best linkage method
+
+## Ploting the dendrogram of the clustering results
+```{r}
+pltree(hc_complete, cex = 0.6, hang = -1, main = "Dendrogram of agnes") 
+
+```
+
