@@ -1,0 +1,129 @@
+---
+title: "ASSIGNMENT_05"
+author: "Yash_Patel"
+date: "2022-12-01"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Loading the required packages
+```{r}
+library(tidyverse)
+library(cluster)
+library(caret)
+library(dendextend)
+library(knitr)
+library(factoextra)
+
+```
+
+### Importing and cleaning the dataset
+```{r}
+Cereals<- read.csv("C:/Users/YASH/Downloads/Cereals.csv")
+Data_cereals <- data.frame(Cereals[,4:16]) %>% drop_na()
+
+```
+
+### data normalization
+```{r}
+Cereals_norm <- scale(Data_cereals)
+
+```
+
+## Apply hierarchical clustering to the data using Euclidean distance to the normalized measurements.
+```{r}
+Euc_dist <- dist(Cereals_norm, method = "euclidean")
+hc_complete <- hclust(Euc_dist, method = "complete")
+#Plotting the dendogram
+plot(hc_complete, cex = 0.7, hang = -1)
+```
+
+## Using agnes function to perfrom clustering with single linkage, complete linkage, average linkage and Ward. And finding the best method
+```{r}
+hc_single <- agnes(Cereals_norm, method = "single")
+hc_complete <- agnes(Cereals_norm, method = "complete")
+hc_avg <- agnes(Cereals_norm, method = "average")
+hc_ward <- agnes(Cereals_norm, method = "ward")
+print(hc_single$ac)
+print(hc_complete$ac)
+print(hc_avg$ac)
+print(hc_ward$ac)
+
+```
+## Here as we can see the accuracy of the Ward method is High (0.9597071) so we can consider it as a best linkage method.
+
+
+## How many clusters would you choose? 
+```{r}
+pltree(hc_ward, cex = 0.7, hang = -1, main = "Dendrogram of agnes (Using Ward)")
+rect.hclust(hc_ward, k = 5, border = 1:4)
+Clust_01 <- cutree(hc_ward, k=5)
+clust_a <- as.data.frame(cbind(Cereals_norm,Clust_01))
+```
+## 5 clusters.
+
+## Comment on the structure of the clusters and on their stability. 
+```{r}
+#Creating Partitions
+set.seed(45320)
+Partition_A <- Data_cereals[1:50,]
+Partition_B <- Data_cereals[51:74,]
+```
+
+### Performing Hierarchial Clustering,taking value of K as 5.
+```{r}
+Hc_single_01 <- agnes(scale(Partition_A), method = "single")
+Hc_complete_01 <- agnes(scale(Partition_A), method = "complete")
+Hc_avg_01 <- agnes(scale(Partition_A), method = "average")
+Hc_ward_01 <- agnes(scale(Partition_A), method = "ward")
+cbind(single=Hc_single_01$ac , complete=Hc_complete_01$ac , average= Hc_avg_01$ac , ward= Hc_ward_01$ac)
+pltree(Hc_ward_01, cex = 0.6, hang = -1, main = "Dendogram of Agnes with Partitioned Data (Using Ward)")
+rect.hclust(Hc_ward_01, k = 5, border = 1:4)
+clust_02 <- cutree(Hc_ward_01, k = 5)
+```
+
+## Use the cluster centroids from A to assign each record in partition B (each record is assigned to the cluster with the closest centroid).Assess how consistent the cluster assignments are compared to the assignments based on all the data. 
+```{r}
+clust_b <- as.data.frame(cbind(Partition_A, clust_02))
+clust_b[clust_b$clust_02==1,]
+centroid_01  <- colMeans(clust_b[clust_b$clust_02==1,])
+clust_b[clust_b$clust_02==2,]
+centroid_02  <- colMeans(clust_b[clust_b$clust_02==2,])
+clust_b[clust_b$clust_02==3,]
+centroid_03 <- colMeans(clust_b[clust_b$clust_02==3,])
+clust_b[clust_b$clust_02==4,]
+centroid_04 <- colMeans(clust_b[clust_b$clust_02==4,])
+main.centroid <- rbind(centroid_01 , centroid_02 , centroid_03, centroid_04)
+var_x <- as.data.frame(rbind(main.centroid[,-14], Partition_B))
+Dist_1  <- get_dist(var_x)
+Data_cere_mat <- as.matrix(Dist_1 )
+clust_c <- data.frame(data=seq(1,nrow(Partition_B),1), Clusters = rep(0,nrow(Partition_B)))
+for(i in 1:nrow(Partition_B)) 
+{clust_c[i,2] <- which.min(Data_cere_mat[i+4, 1:4])}
+clust_c
+cbind(clust_a$Clust_01[51:74], clust_c$Clusters)
+table(clust_a$Clust_01[51:74] == clust_c$Clusters)
+
+```
+Given that we receive 12 FALSE and 12 TRUE, we can claim that the model is only partially stable.
+
+
+## The elementary public schools would like to choose a set of cereals to include in their daily cafeterias. Every day a different cereal is offered, but all cereals should support a healthy diet. For this goal, you are requested to find a cluster of “healthy cereals.” Should the data be normalized? If not, how should they be used in the cluster analysis? 
+```{r}
+Healthy_Cereals <- Cereals %>% drop_na()
+Healthy_diet_clust <- cbind(Healthy_Cereals, Clust_01)
+Healthy_diet_clust[Healthy_diet_clust$Clust_01==1,]
+Healthy_diet_clust[Healthy_diet_clust$Clust_01==2,]
+Healthy_diet_clust[Healthy_diet_clust$Clust_01==3,]
+Healthy_diet_clust[Healthy_diet_clust$Clust_01==4,]
+#Mean ratings to determine the best cluster.
+mean(Healthy_diet_clust[Healthy_diet_clust$Clust_01==1,"rating"])
+mean(Healthy_diet_clust[Healthy_diet_clust$Clust_01==2,"rating"])
+mean(Healthy_diet_clust[Healthy_diet_clust$Clust_01==3,"rating"])
+mean(Healthy_diet_clust[Healthy_diet_clust$Clust_01==4,"rating"])
+
+```
+
+## Since cluster 1's mean ratings are the highest (i.e. 73.84446), we can take that into consideration.
