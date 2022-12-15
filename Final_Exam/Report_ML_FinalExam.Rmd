@@ -1,0 +1,149 @@
+---
+title: "Final_Exam"
+author: "Yash_Patel"
+date: "2022-12-15"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# What we want to achieve with this analysis and which machine learning method we are going to use to predict?
+## Problem And Solution:
+
+The bank's manager is concerned that more and more customers are abandoning their credit card services. They would really appreciate it if someone could foretell who was going to leave so they could go out of their way to offer better services and sway the customer's decision.
+
+Therefore, in order to resolve the bank manager's dilemma, we will use the KNN classification machine learning algorithm to predict whether or not a given customer will discontinue using their credit card services. And using this, the bank manager can specifically target that customer in order to offer them better services and obtain feedback in to improve their service.
+
+## Loading the required packages
+```{r}
+library (caret)
+library(tidyverse)
+library(class)
+```
+# From where I have collected the relevant real world data for the analysis and prediction?
+
+I have used the data from the kaggle website. The link or reference of the data is as follows:https://www.kaggle.com/code/khyatigajera/creditcard-eda-knn-svm
+
+
+## Importing the dataset
+```{r}
+BankChurnersALL <- read.csv("C:/Users/YASH/Downloads/Bankchurners - Sheet1.csv", header=TRUE)
+summary(BankChurnersALL)
+
+```
+
+# What did I do to improve the quality and effectiveness of the data?
+
+Here, I used spreadsheets to convert the categorical data to numerical data in order to make the best prediction. In order to improve the data's accuracy and usefulness, I also used R to remove the columns that were significantly less important for predicting the churn rate.
+
+
+## Selecting the necessary column and droping the one's which are less useful for the analysis
+
+```{r}
+BankChurners <- select(BankChurnersALL,-(25:27))
+#Here we use the summary function to get the overview of the data.
+summary(BankChurners)
+
+```
+# How did I prepare the data for the model?
+
+In order to improve the performance of the model, I first normalised the data to get all of the variable values in a single range. I then partitioned the data into two sets, using 70% of it as a training set and the remaining 30% as a testing set. finally used the Knn function.
+
+
+## Normalising the data
+
+```{r}
+
+normalise <- function(x) {return((x-min(x))/(max(x)-min(x)))}
+BankChurners.n <- as.data.frame(lapply(BankChurners, normalise))
+summary(BankChurners.n)
+
+```
+
+## Selecting 70 % data through random sampling.
+
+```{r}
+set.seed(10923)
+data.1 <- sample(1:nrow(BankChurners.n),size = nrow(BankChurners.n) * 0.7, 
+                 replace = FALSE )
+# 70 % training data
+train.bc <- BankChurners[ data.1, ]
+# 30 % test data
+test.bc <- BankChurners[ -data.1, ]
+
+```
+
+## Now creating seperate dataframe for ' atrrition flag' feature which is our target.
+```{r}
+train.bc.1 <- BankChurners[data.1, 1]
+test.bc.1 <- BankChurners[-data.1 , 1 ]
+
+```
+
+### knn
+```{r}
+NROW ( train.bc.1 )
+#sqrt(4956)
+#~70
+
+knn.70 <- knn(train = train.bc, test = test.bc, cl = train.bc.1, k = 70 )
+knn.71 <- knn(train = train.bc, test = test.bc, cl = train.bc.1, k = 71 )
+
+```
+
+# How I have evaluated the model?
+
+To evaluate the model, I checked the accuracy and used the confusion matrix to assess the model's performance. At last, to get the best K value, I initiated the loop that will show the K value with the highest accuracy.
+
+
+## Let's calculate the proportion of correct classification for k = 70, 71
+
+```{r}
+ACC.70 <- 100 * sum ( test.bc.1 == knn.70 ) / NROW ( test.bc.1 )
+ACC.71 <- 100 * sum ( test.bc.1 == knn.71 ) / NROW ( test.bc.1 )
+ACC.70#85.83529
+ACC.71#85.69412
+
+```
+
+
+## Checking prediction 
+
+```{r}
+table (knn.70, test.bc.1)
+table (knn.71, test.bc.1)
+
+```
+
+## confusionMatrix
+```{r}
+
+
+confusionMatrix (table(knn.70, test.bc.1))
+
+```
+## finding the best K value
+```{r}
+# declaration to initiate for loop
+i= 1  
+k.optm = 1
+for ( i in 1:100 ) {
+  knn.mod <- knn( train=train.bc, test=test.bc, cl=train.bc.1, k = i )
+  k.optm [ i ] <- 100 * sum (test.bc.1 == knn.mod)/NROW(test.bc.1)
+  k = i
+  cat (k,' = ',k.optm [ i ],' \ n ') # to print % accuracy
+}
+# ploting % accuracy  to k - value
+plot( k.optm, type = "point", xlab="K- Value",ylab="Accuracy level") 
+
+```
+### Here we got to know that when K value is 15 we get the highest accuracy #87.38824
+
+```{r}
+
+knn.15 <- knn(train = train.bc, test = test.bc, cl = train.bc.1, k = 15 )
+confusionMatrix (table(knn.15, test.bc.1))
+
+```
+
